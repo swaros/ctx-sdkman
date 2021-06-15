@@ -1,0 +1,73 @@
+config:
+  autorun:
+    onenter: setNeeds
+    onleave: setDefaults
+  sequencially: true
+  variables:
+    software : ""
+    version: ""    
+
+task:  
+  - id: setNeeds
+    variables: 
+     {{- range $key, $value := .sdk }} 
+       DEFAULT{{ $key -}}: "{{- $value.default }}"
+       NEED{{ $key -}}: "{{- $value.need }}"
+     {{- end }}
+    next:
+     {{- range $key, $value := .sdk }}
+       - {{ $key }}SetVersionNeed
+     {{ end }}
+
+  - id: setDefaults
+    variables: 
+     {{- range $key, $value := .sdk }} 
+       DEFAULT{{ $key -}}: "{{- $value.default }}"
+       NEED{{ $key -}}: "{{- $value.need }}"
+     {{- end }}
+    next:
+     {{- range $key, $value := .sdk }}
+       - {{ $key }}SetVersionDefault
+     {{ end }}
+   
+{{ range $key, $value := .sdk }} 
+  - id: {{ $key }}SetVersionNeed
+    variables:
+      software: "{{- $key -}}"
+      version: "${NEED{{- $key -}}}"
+    next:
+     - setVersion
+
+  - id: {{ $key }}SetVersionDefault
+    variables:
+      software: "{{- $key -}}"
+      version: "${DEFAULT{{- $key -}}}"
+    next:
+     - setVersion
+
+{{ end }}   
+
+# default task
+
+  - id: setVersion
+    options:
+      invisible: true
+      ignoreCmdError: true
+    listener:
+      - trigger:
+          onoutContains:
+            - "Stop! Candidate version is not installed" 
+        action:  
+           target: installVersion
+    script:
+      - |
+       source "$HOME/.sdkman/bin/sdkman-init.sh" 
+       sdk use ${software} ${version}
+
+  - id: installVersion
+    options:
+      invisible: true
+    script: 
+      - |
+       source "$HOME/.sdkman/bin/sdkman-init.sh" 
+       sdk install ${software} ${version}
