@@ -1,3 +1,6 @@
+# helper for sdkman
+# https://sdkman.io/
+# ----------------
 sdk:
   maven:
     default: ""
